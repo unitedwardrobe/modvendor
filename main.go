@@ -17,6 +17,7 @@ var (
 	flags       = flag.NewFlagSet("modvendor", flag.ExitOnError)
 	copyPatFlag = flags.String("copy", "", "copy files matching glob pattern to ./vendor/ (ie. modvendor -copy=\"**/*.c **/*.h **/*.proto\")")
 	verboseFlag = flags.Bool("v", false, "verbose output")
+	filterFlag  = flags.Bool("filter", true, "filter non-go packages")
 )
 
 type Mod struct {
@@ -100,24 +101,26 @@ func main() {
 		mod.Pkgs = append(mod.Pkgs, line)
 	}
 
-	// Filter out files not part of the mod.Pkgs
-	for _, mod := range modules {
-		if len(mod.VendorList) == 0 {
-			continue
-		}
-		for vendorFile, _ := range mod.VendorList {
-			for _, subpkg := range mod.Pkgs {
-				path := filepath.Join(mod.Dir, importPathIntersect(mod.ImportPath, subpkg))
+	if *filterFlag {
+		// Filter out files not part of the mod.Pkgs
+		for _, mod := range modules {
+			if len(mod.VendorList) == 0 {
+				continue
+			}
+			for vendorFile := range mod.VendorList {
+				for _, subpkg := range mod.Pkgs {
+					path := filepath.Join(mod.Dir, importPathIntersect(mod.ImportPath, subpkg))
 
-				x := strings.Index(vendorFile, path)
-				if x == 0 {
-					mod.VendorList[vendorFile] = true
+					x := strings.Index(vendorFile, path)
+					if x == 0 {
+						mod.VendorList[vendorFile] = true
+					}
 				}
 			}
-		}
-		for vendorFile, toggle := range mod.VendorList {
-			if !toggle {
-				delete(mod.VendorList, vendorFile)
+			for vendorFile, toggle := range mod.VendorList {
+				if !toggle {
+					delete(mod.VendorList, vendorFile)
+				}
 			}
 		}
 	}
