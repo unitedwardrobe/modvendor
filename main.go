@@ -216,5 +216,10 @@ func copyFile(src, dst string) (int64, error) {
 	}
 	defer dstFile.Close()
 
+	err = os.Chmod(dst, srcStat.Mode())
+	if err != nil {
+		return 0, err
+	}
+
 	return io.Copy(dstFile, srcFile)
 }
